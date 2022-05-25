@@ -1,5 +1,6 @@
 local pb = require "pb"
 local serpent = require("serpent")
+local pbio   = require("pb.io")
 
 -- assert(pb.loadfile "person.pb")
 assert(pb.loadfile "tencentBidding.pb") --加载pb文件
@@ -30,14 +31,27 @@ reqArray={
 
 -- 解码回表
 function tencentReqBodyDecode(reqBody)
-    local data2 = assert(pb.decode("Request", reqBody))
-    print(serpent.block(data2))
-    print("--------------------------------------------")
+    local data = assert(pb.decode("Request",reqBody))
+    local dealid=data.impression[1]["dealid"]
+    local logStr=logFormatStr(dealid,data.device["androidid"],data.device["ua"],data.device["idfa"],data.device["openudid"],data.device["make"],data.device["os"],data.device["Js"],data.device["devicetype"],data.device["imei"],data.device["ip"],data.device["geo"],data.device["idfa_enc"],data.device["carrier"],data.device["model"],data.device["Osv"],data.device["connectiontype"],data.device["mac"])
+
+    -- debug
+    --print(serpent.block(data.device))
+    --for name,_,_ in pb.fields "Request.Impression" do
+    --    print(name,data.impression[1]["dealid"]) -- 只需要打印这三个
+    --end
+
+    print(logStr)
+end
+
+function logFormatStr(dealid,androidid,ua,idfa,openudid,make,os,Js,devicetype,imei,ip,geo,idfa_enc,carrier,model,Osv,connectiontype,mac)
+    return string.format("%s##%s##%s##%s##%s##%s##%s##%s##%s##%s##%s##%s##%s##%s##%s##%s##%s##%s",dealid,androidid,ua,idfa,openudid,make,os,Js,devicetype,imei,ip,geo,idfa_enc,carrier,model,Osv,connectiontype,mac)
 end
 
 
 for i=1,#reqArray do
     tencentReqBodyDecode(reqArray[i])
 end
+
 
 
