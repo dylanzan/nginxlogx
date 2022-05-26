@@ -3,30 +3,35 @@ server {
      charset utf-8;
      server_name localhost;
      lua_need_request_body on;
-     location ~/luatest/(.*)/(.*) {
+
+     error_log /var/log/nginx/luatest_err.log;
+
+     location ~/luatest {
          content_by_lua_block {
               local pb = require "pb"
               local serpent = require("serpent")
               local pbio   = require("pb.io")
 
-              assert(pb.loadfile "/opt/github/nginxlogx/tencentBidding.pb") --加载pb文件
+              assert(pb.loadfile "/opt/github/nginxlogx/tencentBidding_v3.pb") --加载pb文件
 
               local data = ngx.req.get_body_data()
+
+              -- 解码回表
               function tencentReqBodyDecode(reqBody)
                   local data = assert(pb.decode("Request",reqBody))
                   local dealid=data.impression[1]["dealid"]
-                  local logStr=logFormatStr(dealid,data.device["androidid"],data.device["ua"],data.device["idfa"],data.device["openudid"],data.device["make"],data.device["os"],data.device["Js"],data.device["devicetype"],data.device["imei"],data.device["ip"],data.device["geo"],data.device["idfa_enc"],data.device["carrier"],data.device["model"],data.device["Osv"],data.device["connectiontype"],data.device["mac"])
-
+                  logStr=logFormatStr(dealid,data.device["androidid"],data.device["imei"],data.device["mac"],data.device["oaid"],data.device["oaid_md5sum"],data.device["idfa"],data.device["idfa_md5sum"],data.device["ua"])
                   return logStr
               end
 
-              function logFormatStr(dealid,androidid,ua,idfa,openudid,make,os,Js,devicetype,imei,ip,geo,idfa_enc,carrier,model,Osv,connectiontype,mac)
-                  return string.format("%s##%s##%s##%s##%s##%s##%s##%s##%s##%s##%s##%s##%s##%s##%s##%s##%s##%s",dealid,androidid,ua,idfa,openudid,make,os,Js,devicetype,imei,ip,geo,idfa_enc,carrier,model,Osv,connectiontype,mac)
+              -- 格式化输出
+              function logFormatStr(dealid,androidid,imei,mac,oaid,oaid_md5sum,idfa,idfa_md5sum,ua)
+                  return string.format("%s##%s##%s##%s##%s##%s##%s##%s##%s",dealid,androidid,imei,mac,oaid,oaid_md5sum,idfa,idfa_md5sum,ua)
               end
 
               local tencentReqBodyFormat=tencentReqBodyDecode(data)
 
-              ngx.log(ngx.INFO, "tencent Body : ", tencentReqBodyFormat)
+              ngx.log(ngx.STDERR, tencentReqBodyFormat)
          }
      }
 }
