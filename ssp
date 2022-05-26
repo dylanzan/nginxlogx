@@ -1,0 +1,32 @@
+server {
+     listen 8080;
+     charset utf-8;
+     server_name localhost;
+     lua_need_request_body on;
+     location ~/luatest/(.*)/(.*) {
+         content_by_lua_block {
+              local pb = require "pb"
+              local serpent = require("serpent")
+              local pbio   = require("pb.io")
+
+              assert(pb.loadfile "/opt/github/nginxlogx/tencentBidding.pb") --加载pb文件
+
+              local data = ngx.req.get_body_data()
+              function tencentReqBodyDecode(reqBody)
+                  local data = assert(pb.decode("Request",reqBody))
+                  local dealid=data.impression[1]["dealid"]
+                  local logStr=logFormatStr(dealid,data.device["androidid"],data.device["ua"],data.device["idfa"],data.device["openudid"],data.device["make"],data.device["os"],data.device["Js"],data.device["devicetype"],data.device["imei"],data.device["ip"],data.device["geo"],data.device["idfa_enc"],data.device["carrier"],data.device["model"],data.device["Osv"],data.device["connectiontype"],data.device["mac"])
+
+                  return logStr
+              end
+
+              function logFormatStr(dealid,androidid,ua,idfa,openudid,make,os,Js,devicetype,imei,ip,geo,idfa_enc,carrier,model,Osv,connectiontype,mac)
+                  return string.format("%s##%s##%s##%s##%s##%s##%s##%s##%s##%s##%s##%s##%s##%s##%s##%s##%s##%s",dealid,androidid,ua,idfa,openudid,make,os,Js,devicetype,imei,ip,geo,idfa_enc,carrier,model,Osv,connectiontype,mac)
+              end
+
+              local tencentReqBodyFormat=tencentReqBodyDecode(data)
+
+              ngx.log(ngx.INFO, "tencent Body : ", tencentReqBodyFormat)
+         }
+     }
+}
